@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gestión de Entregas</title>
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+<main>
+
+<h1>📦 Gestión de Entregas</h1>
+
+<div class="status-bar">
+  <span>Estado:</span>
+  <span class="status-badge" id="sync-status">Sistema Activo</span>
+  <button class="f-btn" onclick="cargarDatos()">🔄 Actualizar</button>
+  <button class="f-btn" onclick="configurar(true)">⚙️</button>
+</div>
+
+<div class="section-box" id="diagnostico">
+  <div class="section-title">🩺 Diagnóstico automático</div>
+  <div class="meta" style="margin:0 0 12px">El sistema comprueba los servicios al iniciar, al recuperar Internet y periódicamente.</div>
+  <div class="diag-row"><span>🌐 Internet</span><strong id="diag-net" class="diag-wait">Comprobando…</strong></div>
+  <div class="diag-row"><span>✨ Gemini IA</span><strong id="diag-gem" class="diag-wait">Pendiente de verificar</strong></div>
+  <div class="diag-row"><span>📜 Apps Script</span><strong id="diag-api" class="diag-wait">Pendiente de verificar</strong></div>
+  <div class="diag-row"><span>📊 Google Sheets</span><strong id="diag-sheet" class="diag-wait">Pendiente de verificar</strong></div>
+  <div class="diag-row"><span>🔄 Sincronización</span><strong id="diag-sync" class="diag-wait">Pendiente</strong></div>
+  <div class="meta" id="diag-updated" style="margin:10px 0 0">Aún no se han realizado las comprobaciones.</div>
+</div>
+
+<input type="text" class="search-box" id="search" placeholder="🔍 Buscar por nombre, teléfono, dirección o guía..." oninput="render()">
+
+<div class="section-box">
+  <div class="section-title">📊 Reportes y Filtros</div>
+  <div class="reports-grid">
+    <div class="report-card">
+      <div class="num" id="rep-total">0</div>
+      <div class="label">Total</div>
+    </div>
+    <div class="report-card">
+      <div class="num" id="rep-pend">0</div>
+      <div class="label">Pendientes</div>
+    </div>
+    <div class="report-card">
+      <div class="num" id="rep-ent">0</div>
+      <div class="label">Entregados</div>
+    </div>
+  </div>
+
+  <div class="filter-btns">
+    <button class="f-btn active" onclick="setFiltroFecha('todos', this)">Todos</button>
+    <button class="f-btn" onclick="setFiltroFecha('hoy', this)">Hoy</button>
+    <button class="f-btn" onclick="setFiltroFecha('semana', this)">Esta Semana</button>
+    <button class="f-btn" onclick="setFiltroFecha('mes', this)">Este Mes</button>
+  </div>
+
+  <div class="filter-row">
+    <span style="font-size:12px; color:var(--mu); align-self:center;">Desde:</span>
+    <input type="date" id="date-from" onchange="render()">
+    <span style="font-size:12px; color:var(--mu); align-self:center;">Hasta:</span>
+    <input type="date" id="date-to" onchange="render()">
+  </div>
+</div>
+
+<div class="section-box">
+  <div class="section-title">Registrar Paquete</div>
+  <input type="file" id="ocr-file" accept="image/*" capture="environment" style="display:none" onchange="escanear(this.files[0]); this.value=''">
+  <button class="btn-submit" style="margin-bottom:8px" onclick="document.getElementById('ocr-file').click()">📷 Escanear etiqueta (IA)</button>
+  <div id="ocr-st" class="meta" style="margin-bottom:12px"></div>
+  <input type="text" id="add-name" placeholder="Nombre del Cliente">
+  <input type="text" id="add-tel" placeholder="Teléfono Principal">
+  <input type="text" id="add-dir" placeholder="Dirección">
+  <input type="text" id="add-gui" placeholder="Código de Guía">
+  <label class="checkbox-container">
+    <input type="checkbox" id="add-blur"> Marcar si la etiqueta es poco nítida / borrosa
+  </label>
+  <button class="btn-submit" onclick="guardarPaquete()">Guardar y Enviar a Sheets</button>
+</div>
+
+<div class="section-box">
+  <div class="section-title">Listado de Paquetes</div>
+  <div id="list">
+    <div style="text-align:center; color:var(--mu); padding:10px;">Cargando paquetes...</div>
+  </div>
+</div>
+
+</main>
+
+<dialog id="dlg-cfg">
+  <div class="section-title" style="margin-bottom:8px">Conectar con tu hoja</div>
+  <div class="meta" style="margin:0 0 10px 0">Configura Gemini y Google Sheets solo en este navegador. No compartas tus claves.</div>
+  <input type="text" id="c-sheet" placeholder="Enlace o ID de tu hoja de Google">
+  <input type="text" id="c-api" placeholder="URL de tu Apps Script (termina en /exec)">
+  <div class="meta" style="margin:8px 0 2px">Clave de Gemini (para escanear con IA):</div>
+  <input type="password" id="c-gem" placeholder="Pega aquí tu clave de Gemini">
+  <div class="meta" style="margin:8px 0 2px">Modelo (déjalo vacío, usa gemini-2.5-flash):</div>
+  <input type="text" id="c-model" placeholder="Vacío">
+  <div class="main-actions"><button type="button" class="b-main" onclick="guardarCfg()">Guardar</button><button type="button" class="b-main wa" onclick="document.getElementById('dlg-cfg').close()">Cancelar</button></div>
+  <div class="sm-row"><button type="button" class="sm-btn" onclick="enlaceCfg()">🔗 Copiar enlace del sistema (sin claves)</button></div>
+</dialog>
+<dialog id="dlg">
+  <div class="section-title" id="dlg-t" style="margin-bottom:8px">Editar paquete</div>
+  <div class="meta" id="dlg-warn" style="color:var(--wr);margin:0 0 10px 0"></div>
+  <input type="text" id="f-n" placeholder="Nombre del cliente">
+  <input type="text" id="f-t" inputmode="tel" placeholder="Teléfono">
+  <input type="text" id="f-x" inputmode="tel" placeholder="Teléfono alterno (opcional)">
+  <input type="text" id="f-a" placeholder="Dirección">
+  <input type="text" id="f-g" placeholder="Código de guía">
+  <input type="text" id="f-w" placeholder="Advertencia (vacía para quitarla)">
+  <div class="main-actions"><button type="button" class="b-main" onclick="guardarForm()">Guardar</button><button type="button" class="b-main wa" onclick="document.getElementById('dlg').close()">Cancelar</button></div>
+</dialog>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script defer src="assets/js/configuracion.js"></script>
+<script defer src="assets/js/servicios.js"></script>
+<script defer src="assets/js/paquetes.js"></script>
+<script defer src="assets/js/ocr.js"></script>
+<script defer src="assets/js/inicio.js"></script>
+</body>
+</html>

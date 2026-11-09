@@ -1,0 +1,5 @@
+{
+  "nombreSistema": "Gestión de Entregas",
+  "modeloOCR": "gemini-2.5-flash",
+  "nota": "Solo configuraciones públicas: NO guardar claves, números, nombres, direcciones ni enlaces privados."
+}
